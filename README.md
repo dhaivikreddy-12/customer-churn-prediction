@@ -1,41 +1,36 @@
 # 📉 Customer Churn Prediction
 
-> *"Churn isn't just lost revenue — it's lost customers. Predicting who's about to leave lets a business act before it's too late."*
+> *"Churn isn't just lost revenue — it's a customer who already decided to leave. Predicting it early gives the business a chance to respond."*
 
-An intermediate classification project that predicts which customers are likely to cancel their subscription. It goes beyond accuracy into precision/recall and shows how class imbalance changes the game. This is the kind of problem every subscription-based company faces.
+An intermediate classification project on the **IBM Telco Customer Churn** dataset — 7,043 real subscribers, 20 features including contract type, tenure, and monthly charges. It's the same kind of problem every subscription company faces, and it made class imbalance click for me in a way no tutorial had.
 
 ## What this project does
 
-- Loads a realistic telco-style customer dataset (~800 customers).
-- Does EDA to spot patterns between churned and loyal customers.
-- Engineers a few extra features (tenure, usage, support tickets).
-- Trains **Logistic Regression**, **Random Forest**, and **XGBoost**, then compares them.
-- Evaluates with accuracy, precision/recall, and AUC — not just accuracy.
-- Ships a simple predictor function for new customers.
+- Loads the real Telco churn dataset (7,043 customers).
+- Cleans a genuinely messy column — `TotalCharges` arrives as text with blanks.
+- Builds a `ColumnTransformer` pipeline: median-impute + scale numerics, impute + one-hot categoricals.
+- Trains Logistic Regression, Random Forest, and XGBoost, then compares them.
+- Evaluates with accuracy, precision, recall, and AUC against a majority-class baseline.
 
 ## The dataset
 
-Synthetic but realistic (`data/customers.csv`), with these key fields:
+[Telco Customer Churn](https://www.ibm.com/docs/en/cognos-analytics/11.1.0?topic=samples-telco-customer-churn) via OpenML — 7,043 customers.
 
-| Feature             | Description                        |
-|---------------------|------------------------------------|
-| `tenure_months`     | How long the customer has stayed   |
-| `monthly_charges`   | What they pay each month           |
-| `contract_type`     | Monthly / one year / two year      |
-| `total_usage_gb`    | Data usage                         |
-| `support_tickets`   | Number of tickets filed            |
-| `churn`             | Target (1 = left, 0 = stayed)      |
+| Feature | Example values |
+|---|---|
+| `tenure` | Months with the company |
+| `MonthlyCharges` | Current monthly bill |
+| `TotalCharges` | Cumulative bill (blank for new customers) |
+| `Contract` | Month-to-month / One year / Two year |
+| `PaymentMethod`, `InternetService`, `Support requests` | ...and 15 more |
+| `Churn` | Yes / No — **target** (26.5% churn) |
 
 ## How to run it
 
 ```bash
 pip install -r requirements.txt
 
-# Generate data + full pipeline + model comparison
-python churn.py
-
-# Explore the data
-python explore.py
+python churn.py    # load, preprocess, train, compare all three models
 ```
 
 ## Project structure
@@ -43,28 +38,36 @@ python explore.py
 ```
 customer-churn-prediction/
 ├── data/
-│   └── customers.csv            # generated dataset
-├── plots/
+│   └── customers.csv
 ├── src/
-│   ├── preprocess.py            # cleaning & feature engineering
-│   ├── train_model.py           # trains & compares 3 models
-│   └── predict.py               # single-customer prediction
-├── churn.py                     # main script
+│   ├── load_data.py    # fetch + cache
+│   ├── train_model.py  # pipeline, models, evaluation
+│   └── predict.py
+├── tests/
+├── churn.py
 ├── requirements.txt
 └── README.md
 ```
 
 ## What I learned
 
-- That accuracy can be misleading with imbalanced classes — why precision/recall/AUC matter.
-- How to compare three very different models fairly.
-- Feature engineering beats adding more data sometimes.
-- Realistic problems are messy — this project taught me to embrace that.
+- That accuracy is nearly useless here: predicting "no churn" for everyone gives 73.5%.
+- Why one-hot encoding and imputation belong inside a `Pipeline`, not bolted on manually.
+- That logistic regression is genuinely competitive — and interpretable, which matters when you have to explain a decision to a customer.
+- How messy real columns are. `TotalCharges` had to be coerced from text to numeric.
 
 ## Results
 
-On the test set, the best model (usually **Random Forest or XGBoost**) reaches **~0.79 AUC** with balanced precision/recall. Logistic regression is close behind and far more interpretable — a real trade-off.
+20% stratified test split, majority-class baseline = 0.735 accuracy:
+
+| Model | Accuracy | Precision | Recall | AUC |
+|---|---|---|---|---|
+| **LogisticRegression** | **0.806** | **0.657** | **0.559** | **0.842** |
+| RandomForest | 0.782 | 0.611 | 0.492 | 0.819 |
+| XGBoost | 0.769 | 0.575 | 0.500 | 0.810 |
+
+Logistic Regression takes the top spot on AUC (0.842) — comfortably above baseline. That surprised me after reading that tree models always win. They didn't here.
 
 ---
 
-*Built with Python, pandas, scikit-learn, XGBoost, matplotlib. Made for learning, by a student, for students.*
+*Built with Python, pandas, scikit-learn, XGBoost, matplotlib. Real subscriber data, honestly measured.*
